@@ -1,11 +1,13 @@
 package com.coderpig.changedevicesmodelxposed
 
+import android.annotation.SuppressLint
 import android.os.Build
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
+import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers.setStaticObjectField
 import de.robv.android.xposed.callbacks.XC_LoadPackage
+
 
 /**
  * 描述：修改手机机型的核心类
@@ -13,22 +15,30 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
  * @author CoderPig on 2018/04/20 10:40.
  */
 class XposedInit : IXposedHookLoadPackage {
-    @Throws(Throwable::class)
+    @SuppressLint("PrivateApi")
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        setStaticObjectField(Build::class.java, Constant.BRAND, "OPPO")
-        setStaticObjectField(Build::class.java, Constant.PRODUCT, "OPPO")
-        setStaticObjectField(Build::class.java, Constant.MANUFACTURER, "OPPO")
-        setStaticObjectField(Build::class.java, Constant.MODEL, "亮瞎合金狗眼的 OPPO R11 Plus")
-        setStaticObjectField(Build::class.java, Constant.DEVICES, "OPPO R11 Plus")
-        setStaticObjectField(Build::class.java, Constant.RELEASE, "7.1")
-        XposedHelpers.findAndHookMethod(XposedHelpers.findClass("android.os.SystemProperties", lpparam.classLoader), "native_get", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                when (param.args[0].toString()) {
-                    "ro.product.manufacturer", "ro.product.brand", "ro.product.name" -> param.result = "OPPO"
-                    "ro.product.model", "ro.product.device" -> param.result = "OPPO R9s Plus"
-                    "ro.product.version.release" -> param.result = "7.1"
-                }
+        when(lpparam.packageName) {
+            "com.tencent.tmgp.sgame","com.coolapk.market" -> {
+                //兼容低版本
+                setStaticObjectField(Build::class.java, Constant.MANUFACTURER, "OPPO")
+                setStaticObjectField(Build::class.java, Constant.BRAND, "OPPO")
+                setStaticObjectField(Build::class.java, Constant.PRODUCT, "R11 Plus")
+                setStaticObjectField(Build::class.java, Constant.DEVICE, "R11 Plus")
+                setStaticObjectField(Build::class.java, Constant.MODEL, "OPPO R11 Plus")
+                //应对反射获取机型的情况
+                val c = Class.forName("android.os.SystemProperties")
+                val m = c.getDeclaredMethod("native_get", String::class.java, String::class.java)
+                m.isAccessible = true
+                XposedBridge.hookMethod(m, object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        when (param.args[0].toString()) {
+                            "ro.product.manufacturer", "ro.product.brand" -> param.result = "OPPO"
+                            "ro.product.name", "ro.product.device" -> param.result = "R11 Plus"
+                            "ro.product.model" -> param.result = "OPPO R11 Plus"
+                        }
+                    }
+                })
             }
-        })
+        }
     }
 }

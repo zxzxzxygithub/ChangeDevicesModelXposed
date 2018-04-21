@@ -15,7 +15,7 @@ class Constant {
         val PRODUCT ="PRODUCT"
         //手机机型
         val MODEL = "MODEL"
-        val DEVICES = "DEVICES"
+        val DEVICE = "DEVICE"
         //系统版本
         val RELEASE = "RELEASE"
     }
